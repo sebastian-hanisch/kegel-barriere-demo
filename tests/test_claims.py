@@ -127,4 +127,4 @@ def test_the_kernel_reports_far_from_path_only_for_huge_steps_and_there_the_valu
                 assert abs(res.value - run.p_star) <= 1e-6 * (1.0 + abs(run.p_star)), (form, m)      # alle anderen Läufe treffen den Referenzwert
     assert set(flagged) == {("ellipse_psd", 1e5)}
     res, p_star = flagged[("ellipse_psd", 1e5)], std.runs["ellipse_psd"].p_star
-    assert res.value == pytest.approx(100.96, abs=0.01) and p_star == pytest.approx(78.52, abs=0.01) and res.gap_bound < 1e-11          # README: falscher Wert bei winziger gemeldeter Lücke
+    assert res.value > 100.0 and p_star == pytest.approx(78.52, abs=0.01) and res.gap_bound < 1e-9          # README: falscher Wert bei winziger gemeldeter Lücke (100,96 auf dem Entwicklungsrechner, 102,41 auf einem GitHub-Runner)
