@@ -101,6 +101,9 @@ def build_mu(rows: list[dict]):
     fig.add_trace(go.Scatter(x=mus, y=[r["rounds"] for r in rows], mode="lines+markers", name="äußere Runden", line=dict(color=C.COLOR_BOUND, width=2, dash="dot")))
     short = next(r for r in rows if r["short"])
     fig.add_trace(go.Scatter(x=[short["mu"]], y=[short["newton"]], mode="markers", name="Kurzschritt 1 + 1/√ν", marker=dict(symbol="diamond", size=14, color=C.COLOR_REF)))
+    flagged = [r for r in rows if r.get("far_from_path")]
+    if flagged:
+        fig.add_trace(go.Scatter(x=[r["mu"] for r in flagged], y=[r["newton"] for r in flagged], mode="markers", name="weit vom Pfad (Wert falsch)", marker=dict(symbol="x", size=13, color="#b34a4a", line=dict(width=2))))
     fig.update_xaxes(title_text="Schrittfaktor μ (t wird je Runde mit μ multipliziert, logarithmisch)", type="log")
     fig.update_yaxes(title_text="Anzahl (logarithmisch)", type="log")
     return _base(fig)

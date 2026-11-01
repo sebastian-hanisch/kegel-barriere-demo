@@ -109,3 +109,22 @@ def test_the_inverse_barrier_loses_to_the_logarithm(std):
         assert r["gap"] * r["t"] ** (1.0 / 3.0) == pytest.approx(4.0 ** (1.0 / 3.0), abs=0.01)   # p = 2, zwei aktive Zeilen mit z = 1/2: Lücke = 4^(1/3) / t^(1/3) (Herleitung im 📐-Expander)
     inv_last = res["inverse"][1.0][-1]
     assert inv_last["gap"] == pytest.approx(1.414e-5, rel=0.01) and 1e18 <= (inv_last["gap"] * math.sqrt(inv_last["t"]) / 1e-9) ** 2 <= 3e18
+
+
+def test_the_kernel_reports_far_from_path_only_for_huge_steps_and_there_the_value_is_wrong(std):
+    """README: auf der Standardwolke meldet der Kern „weit vom Pfad“ nur bei μ = 10⁵ für die allgemeine Ellipse; dort ist der Wert falsch (100,96 statt 78,52), überall sonst stimmt er.""" 
+    import kegel_kern as K
+
+    flagged = {}
+    for form in F.FORMS:
+        run = std.runs[form]
+        short = P.short_step_factor(run.problem)
+        for m in C.MUS:
+            res = K.solve_barrier(run.problem, tol=1e-9, mu=float(short if m is None else m), max_newton=5000)
+            if res.far_from_path:
+                flagged[(form, m)] = res
+            else:
+                assert abs(res.value - run.p_star) <= 1e-6 * (1.0 + abs(run.p_star)), (form, m)      # alle anderen Läufe treffen den Referenzwert
+    assert set(flagged) == {("ellipse_psd", 1e5)}
+    res, p_star = flagged[("ellipse_psd", 1e5)], std.runs["ellipse_psd"].p_star
+    assert res.value == pytest.approx(100.96, abs=0.01) and p_star == pytest.approx(78.52, abs=0.01) and res.gap_bound < 1e-11          # README: falscher Wert bei winziger gemeldeter Lücke

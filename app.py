@@ -211,7 +211,7 @@ st.subheader("🔬 Experiment 4: Der Schrittfaktor μ")
 st.caption("Die gewählte Form mit verschiedenen Faktoren μ, mit denen `t` je Runde multipliziert wird (Ziel 10⁻⁹). Der Kurzschritt `μ = 1 + 1/√ν` ist die Regel der Theorie.")
 mrows = _mu(settings)
 st.plotly_chart(build_mu(mrows), width="stretch", key="mu_chart")
-st.dataframe(pd.DataFrame([{"μ": mu_text(None) if r["short"] else mu_text(r["mu"]), "Faktor": round(r["mu"], 3), "Runden": r["rounds"], "Newton gesamt": r["newton"], "Newton je Runde": round(r["per_round"], 2)} for r in mrows]),
+st.dataframe(pd.DataFrame([{"μ": mu_text(None) if r["short"] else mu_text(r["mu"]), "Faktor": round(r["mu"], 3), "Runden": r["rounds"], "Newton gesamt": r["newton"], "Newton je Runde": round(r["per_round"], 2), "weit vom Pfad": "ja" if r.get("far_from_path") else "–"} for r in mrows]),
              hide_index=True, width="stretch")
 verdict(verdict_mu(mrows))
 

@@ -155,7 +155,7 @@ def mu_sweep(problem: K.ConeProblem, mus, tol: float = 1e-9, max_newton: int = 5
     rows = []
     for mu in mus:
         res = K.solve_barrier(problem, tol=tol, mu=float(mu), max_newton=max_newton)
-        rows.append({"mu": float(mu), "rounds": res.rounds, "newton": res.newton_steps, "per_round": res.newton_steps / res.rounds, "converged": res.converged, "gap": res.gap_bound, "value": res.value})
+        rows.append({"mu": float(mu), "rounds": res.rounds, "newton": res.newton_steps, "per_round": res.newton_steps / res.rounds, "converged": res.converged, "gap": res.gap_bound, "value": res.value, "far_from_path": res.far_from_path})
     return rows
 
 

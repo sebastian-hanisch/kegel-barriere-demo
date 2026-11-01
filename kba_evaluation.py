@@ -247,13 +247,20 @@ def verdict_nu(rows: list[dict], dim_rows: list[dict]) -> tuple[str, str]:
 
 def verdict_mu(rows: list[dict]) -> tuple[str, str]:
     """Experiment 4: Schrittfaktor gegen Gesamtaufwand."""
+    flagged = [r for r in rows if r.get("far_from_path")]
+    rows = [r for r in rows if not r.get("far_from_path")]
     short = next(r for r in rows if r["short"])
     long_rows = [r for r in rows if r["mu"] >= 4.0]
     best = min(rows, key=lambda r: r["newton"])
-    return "info", (f"Die Kurzschritt-Regel der Theorie (μ = {de(short['mu'], 2)}) braucht **{short['rounds']} Runden und {short['newton']} Newton-Schritte**. "
-                    f"Für μ von {de(min(r['mu'] for r in long_rows), 0)} bis {sci(max(r['mu'] for r in long_rows), 0)} sind es nur {min(r['newton'] for r in long_rows)} bis {max(r['newton'] for r in long_rows)} Schritte "
-                    f"(am wenigsten bei μ = {de(best['mu'], 0)}: {best['newton']}), je Runde zwischen {de(min(r['per_round'] for r in long_rows), 1)} und {de(max(r['per_round'] for r in long_rows), 1)}: "
-                    f"{de(short['newton'] / best['newton'], 0)}-mal weniger als der Kurzschritt.")
+    text = (f"Die Kurzschritt-Regel der Theorie (μ = {de(short['mu'], 2)}) braucht **{short['rounds']} Runden und {short['newton']} Newton-Schritte**. "
+            f"Für μ von {de(min(r['mu'] for r in long_rows), 0)} bis {sci(max(r['mu'] for r in long_rows), 0)} sind es nur {min(r['newton'] for r in long_rows)} bis {max(r['newton'] for r in long_rows)} Schritte "
+            f"(am wenigsten bei μ = {de(best['mu'], 0)}: {best['newton']}), je Runde zwischen {de(min(r['per_round'] for r in long_rows), 1)} und {de(max(r['per_round'] for r in long_rows), 1)}: "
+            f"{de(short['newton'] / best['newton'], 0)}-mal weniger als der Kurzschritt.")
+    if flagged:
+        mus = ", ".join(sci(r["mu"], 0) if r["mu"] >= 1000 else de(r["mu"], 1) for r in flagged)
+        return "warning", (text + f" **Nicht gezählt:** bei μ = {mus} endete eine Zentrierung weit vom Pfad (der Kern meldet `far_from_path`): der Lauf liefert dort einen falschen Wert, "
+                                  "die gemeldete Lücke gilt nicht, und seine Schrittzahl sagt nichts über die Methode.")
+    return "info", text
 
 
 def verdict_decrement(res: dict) -> tuple[str, str]:

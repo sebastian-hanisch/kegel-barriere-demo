@@ -54,6 +54,7 @@ Alle Zahlen stehen in `tests/test_claims.py` (wo dort nur ein Band geprüft wird
 - **Rechengrenze:** Pfadpunkte bei t über etwa 10¹⁰ bis 10¹¹ sind numerisch schlecht (Hesse-Matrix); die Tabelle meldet nicht zentrierte Punkte.
 - **Die Fremdbarriere** nur im LP und nur `Σ s^(−p)` mit p = 1 und 2; andere nicht selbstkonkordante Barrieren habe ich nicht gemessen.
 - **Zeiten** hängen vom Rechner ab und werden nicht getestet.
+- **`ok = True` und `converged = True` im Kern heißen nicht „zentriert“.** `center` gilt auch nach 100 erschöpften Schritten, bei negativem Dekrement-Quadrat und im Rundungsstopp als ok; die Schranke `ν/t` gilt streng nur für einen zentrierten Punkt, und bei großem t ist das Dekrement durch Rundung nicht verlässlich bestimmbar. Das Ergebnis des Kerns trägt seit der Härtung das Feld `far_from_path` für die gefährlichste Klasse (eine Zentrierung endete nach 100 Schritten weit vom Pfad, siehe `tests/test_kern.py`). In Experiment 4 (Schrittfaktor μ) meldet es nur bei sehr großen Sprüngen: auf der Standardwolke bei μ = 10⁵ für die allgemeine Ellipse (nicht für die Kugel der Hauptansicht), auf anderen Wolken und Formen auch bei μ = 10⁵ und einmal bei μ = 1000. In diesen Läufen ist der Wert **falsch** (allgemeine Ellipse der Standardwolke bei μ = 10⁵: 100,96 statt 78,52 bei gemeldeter Lücke 3,3·10⁻¹²): die Tabelle in Experiment 4 trägt dafür die Spalte „weit vom Pfad“, das Verdikt zählt solche Läufe nicht mit, und das Diagramm markiert sie. Eine strengere Härtung wurde gemessen und verworfen, weil sie veröffentlichte Läufe der Stücke 2 und 4 abbrechen ließe, die richtige Werte liefern. Keine Zahl dieser README ändert sich.
 
 ## Verifikation
 
@@ -62,7 +63,7 @@ Alle Zahlen stehen in `tests/test_claims.py` (wo dort nur ein Band geprüft wird
 - **Orakel** (`tests/test_oracle_kegel_barriere.py`): der Optimalwert aller sechs Formen gegen cvxpy mit Clarabel (8 Wolken; dessen eigene Genauigkeit liegt bei bis zu 3·10⁻⁸); Zahl der aktiven Zeilen der Kugel gegen einen unabhängigen Kreis durch zwei oder drei Punkte (15 Wolken, `t · Fehler` gleich der Zahl der Stützpunkte); `t · Fehler` gleich der Zahl der aktiven Zeilen im LP; die Schranke `ν/t` deckt den Fehler an jedem Pfadpunkt jeder Form; Wert fällt monoton; Dual am Pfad (Stück 4); Skalierung.
 - **Randfälle** (`tests/test_edge_cases.py`): zwei Punkte, ein Punkt, d = 1 und 3 in jeder Form, nicht zentrierte Pfadpunkte, Experimente mit kleinen Parametern, ungültige Eingaben.
 - **Verdikte** (`tests/test_verdicts.py`), **Claims** (`tests/test_claims.py`: jede Zahl dieser README), **Oberfläche** (AppTest: jeder Button, jeder Regler an Minimum und Maximum, alle Regler zugleich, jede Form, die Eckfälle aus Stück 4, PDF), Presets, Permalink, Layout, Abbildungen, Footer, Laufzeit-Importe.
-- **Umfang:** 114 Tests (1 davon, das cvxpy-Orakel über alle sechs Formen, überspringt sich ohne cvxpy), rund 1,5 Minuten (2026-11-01, Windows).
+- **Umfang:** 122 Tests (1 davon, das cvxpy-Orakel über alle sechs Formen, überspringt sich ohne cvxpy), rund 1,5 Minuten (2026-11-01, Windows).
 - **Nicht gelaufen:** kein Mutationstest (seit 2026-10-28 nicht mehr Teil des Ablaufs). cvxpy und scipy sind Gegenproben im dev-Satz; ohne sie überspringen sich die jeweiligen Tests.
 
 ## Dateistruktur

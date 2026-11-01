@@ -61,6 +61,15 @@ def _mu_rows():
             {"mu": 32.0, "rounds": 8, "newton": 28, "per_round": 3.5, "short": False}, {"mu": 1e5, "rounds": 4, "newton": 30, "per_round": 7.5, "short": False}]
 
 
+def test_mu_verdict_leaves_out_runs_that_ended_far_from_the_path():
+    rows = _mu_rows()
+    rows[3] = {**rows[3], "far_from_path": True, "newton": 12}
+    kind, text = ev.verdict_mu(rows)
+    assert kind == "warning" and "**Nicht gezählt:** bei μ = 1·10⁵ endete eine Zentrierung weit vom Pfad" in text and "falschen Wert" in text
+    assert "μ von 4 bis 3·10¹ sind es nur 28 bis 43 Schritte" in text                      # die markierte Zeile geht nicht in die Spanne ein
+    assert ev.verdict_mu(_mu_rows())[0] == "info" and "Nicht gezählt" not in ev.verdict_mu(_mu_rows())[1]
+
+
 def test_mu_verdict_compares_the_short_step_with_the_long_steps():
     kind, text = ev.verdict_mu(_mu_rows())
     assert kind == "info"
