@@ -255,7 +255,7 @@ def verdict_mu(rows: list[dict]) -> tuple[str, str]:
     text = (f"Die Kurzschritt-Regel der Theorie (μ = {de(short['mu'], 2)}) braucht **{short['rounds']} Runden und {short['newton']} Newton-Schritte**. "
             f"Für μ von {de(min(r['mu'] for r in long_rows), 0)} bis {sci(max(r['mu'] for r in long_rows), 0)} sind es nur {min(r['newton'] for r in long_rows)} bis {max(r['newton'] for r in long_rows)} Schritte "
             f"(am wenigsten bei μ = {de(best['mu'], 0)}: {best['newton']}), je Runde zwischen {de(min(r['per_round'] for r in long_rows), 1)} und {de(max(r['per_round'] for r in long_rows), 1)}: "
-            f"{de(short['newton'] / best['newton'], 0)}-mal weniger als der Kurzschritt.")
+            f"der Kurzschritt braucht für diese Form und Wolke etwa {de(short['newton'] / best['newton'], 0)}-mal so viele Schritte (andere nicht ausgewertet).")
     if flagged:
         mus = ", ".join(sci(r["mu"], 0) if r["mu"] >= 1000 else de(r["mu"], 1) for r in flagged)
         return "warning", (text + f" **Nicht gezählt:** bei μ = {mus} endete eine Zentrierung weit vom Pfad (der Kern meldet `far_from_path`): der Lauf liefert dort einen falschen Wert, "
@@ -268,7 +268,7 @@ def verdict_decrement(res: dict) -> tuple[str, str]:
     first = res["first"]
     parts = "; ".join(f"Sprung um {factor_text(j['factor'])}: {j['damped']} gedämpfte von {j['total']} Schritten" for j in res["jumps"])
     seq = " → ".join(sci(s.lam2_half, 0) for s in first)
-    return "info", (f"Die erste Zentrierung vom Start aus: halbes Dekrement-Quadrat {seq} (es quadriert sich bei vollem Schritt). {parts}. "
+    return "info", (f"Die erste Zentrierung vom Start aus: halbes Dekrement-Quadrat {seq} (bei vollem Schritt quadratische Konvergenz).{parts}. "
                     "Zuerst kostet ein großer Sprung gedämpfte Schritte (Länge unter 1), dann konvergiert Newton quadratisch.")
 
 
@@ -277,6 +277,11 @@ def verdict_wrong(res: dict) -> tuple[str, str]:
     last_log, last_inv = res["log"][-1], res["inverse"][1.0][-1]
     t_need = (last_inv["gap"] * math.sqrt(last_inv["t"]) / 1e-9) ** 2 if last_inv["gap"] > 0 else float("nan")
     t_log = last_log["gap"] * last_log["t"] / 1e-9
+    steps_log = max((r.get("steps", 0) for r in res["log"]), default=0)
+    steps_inv = max((r.get("steps", 0) for rows in res["inverse"].values() for r in rows), default=0)
+    effort = (f"Newton-Schritte je t: bis {steps_log} mit der log-Barriere, bis {steps_inv} mit der Fremdbarriere"
+              + ("; bei sehr großem t erreicht sie die Rundungsgrenze und der Zähler läuft an die Schrittgrenze, die Lücke bleibt davon unberührt." if steps_inv > 20
+                 else ": der Aufwand ist hier klein, das Problem der falschen Barriere ist die Lücke."))
     return "warning", (f"Bei t = {sci(last_log['t'], 0)} liegt die Lücke mit der log-Barriere bei {sci(last_log['gap'])} (≈ {de(last_log['gap'] * last_log['t'], 1)}/t), "
                        f"mit φ = Σ 1/s bei {sci(last_inv['gap'])} (≈ {de(last_inv['gap'] * math.sqrt(last_inv['t']), 2)}/√t). Um 10⁻⁹ zu erreichen, bräuchte 1/s ein t von etwa {sci(t_need, 0)}, die log-Barriere {sci(t_log, 0)}. "
-                       "Newton-Schritte je t sind in beiden Fällen klein: das Problem der falschen Barriere ist die Lücke, nicht der Aufwand.")
+                       + effort)

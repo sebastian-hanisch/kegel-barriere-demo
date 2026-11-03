@@ -153,7 +153,7 @@ if run.problems:
     st.error("Die Rückumformung besteht nicht: " + "; ".join(run.problems))
 m1, m2, m3, m4, m5 = st.columns(5)
 m1.metric("Barriere-Parameter ν", run.nu, help="Summe der Barriere-Parameter der Kegel: Orthant je Zeile 1, Lorentz-Kegel 2, PSD-Kegel die Matrixgröße.")
-m2.metric("Äußere Runden", run.result.rounds, help="Wie oft t mit dem Faktor 8 multipliziert wurde (Ziel: bewiesene Lücke 1e-9).")
+m2.metric("Äußere Runden", run.result.rounds, help="Wie viele Zentrierungen nötig waren (t wächst je Runde um den Faktor 8; Ziel: bewiesene Lücke 1e-9).")
 m3.metric("Newton-Schritte gesamt", run.result.newton_steps, help="Summe der Newton-Schritte aller Zentrierungen in dieser Implementierung.")
 m4.metric("Bewiesene Lücke ν/t", sci(run.result.gap_bound), help="Obergrenze für cᵀx − p* am Ende.")
 m5.metric("Wahrer Fehler · t = m", de(m_final, 1), help="t mal der wahre Fehler bei t = 10⁷: geht gegen eine kleine ganze Zahl (Zahl der aktiven Bedingungen), nicht gegen ν.")
@@ -226,7 +226,7 @@ verdict(verdict_decrement(dec))
 st.markdown("---")
 
 st.subheader("🔬 Experiment 6: Warum ein Logarithmus?")
-st.caption("Der Würfel (ein LP) der eingestellten Wolke mit der log-Barriere und mit `φ = Σ 1/s` und `Σ 1/s²`. Newton ist in allen Fällen unauffällig; die Lücke nicht.")
+st.caption("Der Würfel (ein LP) der eingestellten Wolke mit der log-Barriere und mit `φ = Σ 1/s` und `Σ 1/s²`. Bis t = 10⁶ ist Newton unauffällig (4 bis 10 Schritte); die Lücke nicht. Bei sehr großem t erreicht die Fremdbarriere die Rundungsgrenze, und der Schrittzähler kann an die Schrittgrenze laufen.")
 wrong = _wrong(settings)
 st.plotly_chart(build_wrong(wrong), width="stretch", key="wrong_chart")
 verdict(verdict_wrong(wrong))
@@ -245,7 +245,7 @@ st.markdown(
 | **Der Pfad existiert** | Ohne streng zulässiges Dual läuft er davon (Stück 4). | – |
 | **t bleibt unter etwa 10¹⁰ bis 10¹¹** | Die Hesse-Matrix wird numerisch singulär; der Löser beendet den Lauf mit der zuletzt bewiesenen Lücke, und Experiment 2 meldet nicht zentrierte Punkte. | Stück 6 |
 | **Die Barriere ist eine selbstkonkordante Logarithmus-Barriere** | Für andere Barrieren (Experiment 6) gilt die Schranke ν/t nicht; der Fehler fällt viel langsamer. | – |
-| **Aktive Bedingungen zählen m** | Für Würfel, Raute und die Kugeln ist `m` die Zahl der aktiven Bedingungen (bzw. Stützpunkte); bei den Ellipsen stimmt die Zählung nicht, dort stehen nur die gemessenen Zahlen. | – |
+| **Aktive Bedingungen zählen m** | Für Würfel, Raute und die Kugeln ist `m` die Zahl der aktiven Bedingungen (bzw. Stützpunkte); bei den Ellipsen zählt statt der Blöcke der Rang des Dualblocks (allgemeine Ellipse: 3 Punkte + Rang 2 = 5), die Zählung im Code folgt dieser Regel nicht, dort stehen beide Zahlen. | – |
 """
 )
 
@@ -260,7 +260,7 @@ Alle drei sind selbstkonkordant; $\nu$ ist der kleinste Parameter, für den $\na
 **Zentraler Pfad.** $x(t) = \arg\min_x\; t\,c^\top x + \phi(b - Ax)$. Stationarität: $t\,c = A^\top \nabla\phi(s)$ für $s = b - Ax(t)$. Mit $z(t) = -\nabla\phi(s)/t \in K$ gilt $A^\top z(t) = -c$ (dual zulässig) und
 $z(t)^\top s = -\nabla\phi(s)^\top s / t = \nu / t$, denn $\nabla\phi(s)^\top s = -\nu$ für alle drei Barrieren. Also $c^\top x(t) + b^\top z(t) = \nu/t$ und $c^\top x(t) - p^* \le \nu/t$.
 
-**Wahrer Fehler.** Im LP ist $c^\top x(t) - p^* = \sum_{i \text{ aktiv}} 1/t \cdot (1 + o(1))$: jede aktive Zeile trägt $1/t$ bei, weil $s_i z_i = 1/t$ und $z_i \to z_i^*$ (nichtentartet). Deshalb ist $t\,(c^\top x(t) - p^*) \to m$, die Zahl der aktiven Zeilen, unabhängig von $\nu$ (alle Zeilen). Für Lorentz- und PSD-Kegel gilt der Gedanke blockweise (ein aktiver Kegel trägt je einmal $1/t$); die Ellipsen zeigen kleine ganze Zahlen, die ich nicht gedeutet habe.
+**Wahrer Fehler.** Im LP ist $c^\top x(t) - p^* = \sum_{i \text{ aktiv}} 1/t \cdot (1 + o(1))$: jede aktive Zeile trägt $1/t$ bei, weil $s_i z_i = 1/t$ und $z_i \to z_i^*$ (nichtentartet). Deshalb ist $t\,(c^\top x(t) - p^*) \to m$, die Zahl der aktiven Zeilen, unabhängig von $\nu$ (alle Zeilen). Für Lorentz- und PSD-Kegel gilt der Gedanke blockweise mit dem Rang: ein aktiver Block trägt den Rang seines Dualblocks bei (Kugeln: 1; allgemeine Ellipse: PSD-Block mit Rang 2, also $m = 3 + 2 = 5$); die Ellipsen zeigen deshalb kleine ganze Zahlen.
 
 **Verdoppeltes $\nu$.** Schreibt man jede Nebenbedingung zweimal hin, ist $\phi_{\text{dup}} = 2\phi$ und $f_t^{\text{dup}} = t\,c^\top x + 2\phi = 2\bigl((t/2)\,c^\top x + \phi\bigr)$: der Pfad ist derselbe, nur mit $t/2$ statt $t$; die Lückenschranke ist $2\nu/t = \nu/(t/2)$.
 

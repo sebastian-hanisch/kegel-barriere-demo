@@ -73,7 +73,7 @@ def test_mu_verdict_leaves_out_runs_that_ended_far_from_the_path():
 def test_mu_verdict_compares_the_short_step_with_the_long_steps():
     kind, text = ev.verdict_mu(_mu_rows())
     assert kind == "info"
-    for part in ("(μ = 1,16)", "**160 Runden und 343 Newton-Schritte**", "μ von 4 bis 1·10⁵ sind es nur 28 bis 43 Schritte", "am wenigsten bei μ = 32: 28", "je Runde zwischen 2,4 und 7,5", "12-mal weniger als der Kurzschritt"):
+    for part in ("(μ = 1,16)", "**160 Runden und 343 Newton-Schritte**", "μ von 4 bis 1·10⁵ sind es nur 28 bis 43 Schritte", "am wenigsten bei μ = 32: 28", "je Runde zwischen 2,4 und 7,5", "der Kurzschritt braucht für diese Form und Wolke etwa 12-mal so viele Schritte"):
         assert part in text, part
 
 
@@ -88,8 +88,16 @@ def test_decrement_verdict_lists_the_first_sequence_and_the_damped_steps():
 
 
 def test_wrong_barrier_verdict_names_both_gaps_and_the_needed_t():
-    res = {"log": [{"t": 1.0, "gap": 74.0}, {"t": 1e10, "gap": 2.0e-10}], "inverse": {1.0: [{"t": 1.0, "gap": 3.8}, {"t": 1e10, "gap": 1.414e-5}]}}
+    res = {"log": [{"t": 1.0, "gap": 74.0, "steps": 8}, {"t": 1e10, "gap": 2.0e-10, "steps": 6}],
+           "inverse": {1.0: [{"t": 1.0, "gap": 3.8, "steps": 4}, {"t": 1e10, "gap": 1.414e-5, "steps": 6}]}}
     kind, text = ev.verdict_wrong(res)
     assert kind == "warning"
-    for part in ("Bei t = 1·10¹⁰ liegt die Lücke mit der log-Barriere bei 2,0·10⁻¹⁰ (≈ 2,0/t)", "mit φ = Σ 1/s bei 1,4·10⁻⁵ (≈ 1,41/√t)", "bräuchte 1/s ein t von etwa 2·10¹⁸, die log-Barriere 2·10⁹", "nicht der Aufwand"):
+    for part in ("Bei t = 1·10¹⁰ liegt die Lücke mit der log-Barriere bei 2,0·10⁻¹⁰ (≈ 2,0/t)", "mit φ = Σ 1/s bei 1,4·10⁻⁵ (≈ 1,41/√t)", "bräuchte 1/s ein t von etwa 2·10¹⁸, die log-Barriere 2·10⁹",
+                 "bis 8 mit der log-Barriere, bis 6 mit der Fremdbarriere", "der Aufwand ist hier klein"):
         assert part in text, part
+
+
+def test_wrong_barrier_verdict_reports_the_step_limit_instead_of_calling_the_effort_small():
+    res = {"log": [{"t": 1e10, "gap": 2.0e-10, "steps": 6}], "inverse": {1.0: [{"t": 1e10, "gap": 1.414e-5, "steps": 200}]}}
+    text = ev.verdict_wrong(res)[1]
+    assert "bis 200 mit der Fremdbarriere" in text and "Schrittgrenze" in text and "der Aufwand ist hier klein" not in text
