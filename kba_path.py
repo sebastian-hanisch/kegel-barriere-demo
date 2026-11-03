@@ -161,13 +161,21 @@ def mu_sweep(problem: K.ConeProblem, mus, tol: float = 1e-9, max_newton: int = 5
 
 # ----------------------------------------------------------------------------- falsche Barriere (nur Orthant)
 
-def inverse_barrier_point(problem: K.ConeProblem, t: float, x_start: np.ndarray, p: float = 1.0, tol: float = 1e-16, max_iter: int = 200) -> tuple[np.ndarray, int]:
-    """Newton auf t c^T x + Summe_i s_i^(-p) (statt -Summe log s_i): nur für reine Orthant-Programme. Gibt (x, Schritte) zurück."""
+CONVERGED, STAGNATED, STEP_LIMIT, NO_LINE = "konvergiert", "stagniert", "Schrittgrenze", "Schrittsuche erfolglos"
+STAGNATION_FACTOR = 8.0        # ein Schritt, der x um höchstens 8 · eps · max(1, |x|) bewegt, liegt an der Rundungsgrenze: Newton kommt nicht weiter
+
+
+def inverse_barrier_solve(problem: K.ConeProblem, t: float, x_start: np.ndarray, p: float = 1.0, tol: float = 1e-16, max_iter: int = 200) -> tuple[np.ndarray, int, str]:
+    """Newton auf t c^T x + Summe_i s_i^(-p) (statt -Summe log s_i): nur für reine Orthant-Programme. Gibt (x, Schritte, Grund des Abbruchs) zurück.
+
+    Gründe: „konvergiert“ (halbes Dekrement-Quadrat unter `tol`), „stagniert“ (der Schritt bewegt x um weniger als STAGNATION_FACTOR · eps · max(1, |x|): die Rundung des
+    Gradienten bei sehr großem t hält das Dekrement-Quadrat über `tol`, ohne dass der Punkt noch wandert; der Pfadpunkt ist dann erreicht), „Schrittsuche erfolglos“ und „Schrittgrenze“."""
     if any(kind != "l" for kind, _ in problem.cones):
         raise ValueError("die Fremdbarriere gibt es nur für Orthant-Programme (LP)")
     if p <= 0:
         raise ValueError("p muss positiv sein")
     x, steps = x_start.copy(), 0
+    eps = float(np.finfo(float).eps)
     for _ in range(max_iter):
         s = problem.b - problem.A @ x
         grad = t * problem.c + problem.A.T @ (p * s ** (-p - 1.0))
@@ -175,7 +183,7 @@ def inverse_barrier_point(problem: K.ConeProblem, t: float, x_start: np.ndarray,
         dx = -np.linalg.solve(hess + 1e-14 * np.eye(len(x)), grad)
         dec2 = float(-grad @ dx)
         if dec2 / 2.0 <= tol:
-            break
+            return x, steps, CONVERGED
         f0 = t * problem.c @ x + float(np.sum(s ** (-p)))
         step = 1.0
         while step > 1e-14:
@@ -185,15 +193,23 @@ def inverse_barrier_point(problem: K.ConeProblem, t: float, x_start: np.ndarray,
                 break
             step *= 0.5
         if step <= 1e-14:
-            break
+            return x, steps, NO_LINE
+        if float(np.max(np.abs(step * dx))) <= STAGNATION_FACTOR * eps * max(1.0, float(np.max(np.abs(x)))):
+            return x, steps, STAGNATED
         x, steps = x + step * dx, steps + 1
+    return x, steps, STEP_LIMIT
+
+
+def inverse_barrier_point(problem: K.ConeProblem, t: float, x_start: np.ndarray, p: float = 1.0, tol: float = 1e-16, max_iter: int = 200) -> tuple[np.ndarray, int]:
+    """Wie `inverse_barrier_solve`, ohne den Grund des Abbruchs: (x, Schritte)."""
+    x, steps, _ = inverse_barrier_solve(problem, t, x_start, p, tol, max_iter)
     return x, steps
 
 
 def inverse_barrier_path(problem: K.ConeProblem, ts, p: float = 1.0) -> list[dict]:
-    """Pfadpunkte der Fremdbarriere für aufsteigende t: (t, Wert, Newton-Schritte)."""
+    """Pfadpunkte der Fremdbarriere für aufsteigende t: (t, Wert, Newton-Schritte, Grund des Abbruchs)."""
     x, out = problem.x0.copy(), []
     for t in ts:
-        x, steps = inverse_barrier_point(problem, float(t), x, p)
-        out.append({"t": float(t), "value": float(problem.c @ x), "steps": steps})
+        x, steps, stop = inverse_barrier_solve(problem, float(t), x, p)
+        out.append({"t": float(t), "value": float(problem.c @ x), "steps": steps, "stop": stop})
     return out

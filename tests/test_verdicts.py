@@ -101,3 +101,12 @@ def test_wrong_barrier_verdict_reports_the_step_limit_instead_of_calling_the_eff
     res = {"log": [{"t": 1e10, "gap": 2.0e-10, "steps": 6}], "inverse": {1.0: [{"t": 1e10, "gap": 1.414e-5, "steps": 200}]}}
     text = ev.verdict_wrong(res)[1]
     assert "bis 200 mit der Fremdbarriere" in text and "Schrittgrenze" in text and "der Aufwand ist hier klein" not in text
+
+
+def test_wrong_barrier_verdict_names_the_stagnation_and_where_it_starts():
+    res = {"log": [{"t": 1e10, "gap": 2.0e-10, "steps": 6}],
+           "inverse": {1.0: [{"t": 1e8, "gap": 1.4e-4, "steps": 6, "stop": "konvergiert"}, {"t": 1e10, "gap": 1.414e-5, "steps": 6, "stop": "stagniert"}],
+                       2.0: [{"t": 1e6, "gap": 1.6e-2, "steps": 7, "stop": "konvergiert"}, {"t": 1e8, "gap": 3.4e-3, "steps": 8, "stop": "stagniert"}, {"t": 1e10, "gap": 7.4e-4, "steps": 14, "stop": "stagniert"}]}}
+    text = ev.verdict_wrong(res)[1]
+    assert "bis 14 mit der Fremdbarriere" in text and "stagniert die Fremdbarriere an der Rundungsgrenze (Σ 1/s ab t = 1·10¹⁰, Σ s^(−2) ab t = 1·10⁸)" in text
+    assert "200" not in text and "Schrittgrenze" not in text and "der Aufwand ist hier klein" not in text

@@ -226,7 +226,7 @@ verdict(verdict_decrement(dec))
 st.markdown("---")
 
 st.subheader("🔬 Experiment 6: Warum ein Logarithmus?")
-st.caption("Der Würfel (ein LP) der eingestellten Wolke mit der log-Barriere und mit `φ = Σ 1/s` und `Σ 1/s²`. Bis t = 10⁶ ist Newton unauffällig (4 bis 10 Schritte); die Lücke nicht. Bei sehr großem t erreicht die Fremdbarriere die Rundungsgrenze, und der Schrittzähler kann an die Schrittgrenze laufen.")
+st.caption("Der Würfel (ein LP) der eingestellten Wolke mit der log-Barriere und mit `φ = Σ 1/s` und `Σ 1/s²`. Bis t = 10⁶ ist Newton unauffällig (4 bis 10 Schritte); die Lücke nicht. Bei sehr großem t (10⁸ bis 10¹⁰) stagniert die Fremdbarriere an der Rundungsgrenze: der Punkt bewegt sich nicht mehr, und Newton hält nach wenigen Schritten an (das Verdikt nennt, ab welchem t).")
 wrong = _wrong(settings)
 st.plotly_chart(build_wrong(wrong), width="stretch", key="wrong_chart")
 verdict(verdict_wrong(wrong))

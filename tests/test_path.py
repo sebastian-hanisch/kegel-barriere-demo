@@ -172,3 +172,29 @@ def test_inverse_barrier_gap_falls_like_one_over_square_root_of_t_in_the_lp():
     assert [g * math.sqrt(r["t"]) for g, r in zip(gaps, rows)] == pytest.approx([math.sqrt(2.0)] * 3, rel=2e-3)        # 1,414/sqrt(t): ein aktives Paar, p = 1
     log_gap = P.trace_path(prob, [1e4, 1e6, 1e8])
     assert all(p.value - p_star < g * 1e-2 for p, g in zip(log_gap[1:], gaps[1:]))                                      # die log-Barriere liegt weit darunter (bei t = 1e6 um das Tausendfache, bei 1e8 um das Zehntausendfache)
+
+
+def test_inverse_barrier_stops_at_the_rounding_limit_instead_of_counting_to_the_step_limit():
+    """Bei sehr großem t hält die Rundung des Gradienten das Dekrement-Quadrat über der Toleranz (Würfel, p = 1, t = 10¹⁰; p = 2, t = 10⁸): früher zählte der Lauf bis 200,
+    jetzt hält er an, sobald der Schritt x nicht mehr bewegt, und meldet „stagniert“. Der Punkt stimmt: Lücke gegen die Handformel 2 sqrt(z/t) mit z = 1/2 (p = 1) bzw. 4^(1/3)/t^(1/3) (p = 2)."""
+    prob = F.build_form("cube", make_cloud(20, 4.0, 45, 35).points)
+    p_star = K.solve_barrier(prob, tol=1e-12).value
+    for p, ts, formula in ((1.0, (1e2, 1e4, 1e6, 1e8, 1e10), lambda t: math.sqrt(2.0 / t)), (2.0, (1e2, 1e4, 1e6, 1e8, 1e10), lambda t: 4.0 ** (1.0 / 3.0) / t ** (1.0 / 3.0))):
+        x = prob.x0.copy()
+        for t in ts:
+            x, steps, stop = P.inverse_barrier_solve(prob, t, x, p)
+            assert stop in (P.CONVERGED, P.STAGNATED) and steps < 30, (p, t, steps, stop)
+            if t >= 1e4:                                                                                       # die Handformel ist asymptotisch
+                assert float(prob.c @ x) - p_star == pytest.approx(formula(t), rel=2e-3), (p, t)
+
+
+def test_inverse_barrier_reports_why_it_stopped():
+    one = K.ConeProblem(np.array([1.0]), np.array([[-1.0]]), np.array([-1.0]), (("l", 1),), np.array([2.0]))          # min x mit x ≥ 1
+    x, steps, stop = P.inverse_barrier_solve(one, 1e4, one.x0, 1.0)
+    assert stop == P.CONVERGED and x[0] == pytest.approx(1.0 + 1.0 / math.sqrt(1e4), rel=1e-9) and steps == P.inverse_barrier_point(one, 1e4, one.x0, 1.0)[1]
+    x, steps, stop = P.inverse_barrier_solve(one, 1e4, one.x0, 1.0, max_iter=2)
+    assert (steps, stop) == (2, P.STEP_LIMIT)
+    x, steps, stop = P.inverse_barrier_solve(one, 1e12, one.x0, 1.0)                                                  # t so groß, dass 1 + 10⁻⁶ gerade noch auflösbar ist
+    assert stop in (P.CONVERGED, P.STAGNATED) and steps < 40 and x[0] == pytest.approx(1.0 + 1e-6, rel=1e-6)
+    rows = P.inverse_barrier_path(one, [1e2, 1e12], 1.0)
+    assert [r["stop"] for r in rows][0] == P.CONVERGED and all(r["steps"] < 40 and "stop" in r for r in rows)

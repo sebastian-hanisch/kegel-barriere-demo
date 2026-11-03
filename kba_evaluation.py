@@ -202,7 +202,7 @@ def wrong_barrier_experiment(points: np.ndarray, ts=C.WRONG_TS, ps=C.WRONG_PS) -
         log_rows.append({"t": t, "gap": float(prob.c @ x) - p_star, "steps": steps})
     inv = {}
     for p in ps:
-        inv[p] = [{"t": r["t"], "gap": r["value"] - p_star, "steps": r["steps"]} for r in P.inverse_barrier_path(prob, ts, p)]
+        inv[p] = [{"t": r["t"], "gap": r["value"] - p_star, "steps": r["steps"], "stop": r["stop"]} for r in P.inverse_barrier_path(prob, ts, p)]
     return {"nu": K.barrier_parameter(prob.cones), "p_star": p_star, "log": log_rows, "inverse": inv}
 
 
@@ -279,9 +279,16 @@ def verdict_wrong(res: dict) -> tuple[str, str]:
     t_log = last_log["gap"] * last_log["t"] / 1e-9
     steps_log = max((r.get("steps", 0) for r in res["log"]), default=0)
     steps_inv = max((r.get("steps", 0) for rows in res["inverse"].values() for r in rows), default=0)
-    effort = (f"Newton-Schritte je t: bis {steps_log} mit der log-Barriere, bis {steps_inv} mit der Fremdbarriere"
-              + ("; bei sehr großem t erreicht sie die Rundungsgrenze und der Zähler läuft an die Schrittgrenze, die Lücke bleibt davon unberührt." if steps_inv > 20
-                 else ": der Aufwand ist hier klein, das Problem der falschen Barriere ist die Lücke."))
+    stagnated = {p: next(r["t"] for r in rows if r.get("stop") == P.STAGNATED) for p, rows in res["inverse"].items() if any(r.get("stop") == P.STAGNATED for r in rows)}
+    limit = any(r.get("stop") == P.STEP_LIMIT for rows in res["inverse"].values() for r in rows) or (steps_inv > 20 and not stagnated)
+    effort = f"Newton-Schritte je t: bis {steps_log} mit der log-Barriere, bis {steps_inv} mit der Fremdbarriere"
+    if stagnated:
+        where = ", ".join(f"{'Σ 1/s' if p == 1.0 else f'Σ s^(−{p:g})'} ab t = {sci(t, 0)}" for p, t in stagnated.items())
+        effort += f"; bei sehr großem t stagniert die Fremdbarriere an der Rundungsgrenze ({where}): der Punkt bewegt sich nicht mehr, Newton hält dort an, die Lücke bleibt davon unberührt."
+    elif limit:
+        effort += "; bei sehr großem t erreicht die Fremdbarriere die Schrittgrenze, die Lücke bleibt davon unberührt."
+    else:
+        effort += ": der Aufwand ist hier klein, das Problem der falschen Barriere ist die Lücke."
     return "warning", (f"Bei t = {sci(last_log['t'], 0)} liegt die Lücke mit der log-Barriere bei {sci(last_log['gap'])} (≈ {de(last_log['gap'] * last_log['t'], 1)}/t), "
                        f"mit φ = Σ 1/s bei {sci(last_inv['gap'])} (≈ {de(last_inv['gap'] * math.sqrt(last_inv['t']), 2)}/√t). Um 10⁻⁹ zu erreichen, bräuchte 1/s ein t von etwa {sci(t_need, 0)}, die log-Barriere {sci(t_log, 0)}. "
                        + effort)
